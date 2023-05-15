@@ -1,38 +1,19 @@
 #include "s21_matrix.h"
 
-int main() {
-  int res = 0;
-  matrix_t A = {0};
-  matrix_t Z = {0};
+// int main() {
+//   int res;
+//   matrix_t A = {0};
+//   matrix_t Z = {0};
 
-  s21_create_matrix(4, 4, &A);
-  A.matrix[0][0] = 112.0;
-  A.matrix[0][1] = 243.0;
-  A.matrix[0][2] = 3.0;
-  A.matrix[0][3] = -8.0;
-  A.matrix[1][0] = 47.0;
-  A.matrix[1][1] = 51.0;
-  A.matrix[1][2] = -66.0;
-  A.matrix[1][3] = 99.0;
-  A.matrix[2][0] = -74.0;
-  A.matrix[2][1] = 85.0;
-  A.matrix[2][2] = 97.0;
-  A.matrix[2][3] = 63.0;
-  A.matrix[3][0] = -13.0;
-  A.matrix[3][1] = 79.0;
-  A.matrix[3][2] = -99.0;
-  A.matrix[3][3] = -121.0;
+//   s21_create_matrix(1, 1, &A);
+//   A.matrix[0][0] = 2;
 
-  s21_calc_complements(&A, &Z);
-  for (int i = 0; i != 4; i++) {
-    for (int j = 0; j != 4; j++) {
-      printf("%lf\n", Z.matrix[i][j]);
-    }
-  }
-  s21_remove_matrix(&A);
-  s21_remove_matrix(&Z);
-  return 0;
-}
+//   res = s21_inverse_matrix(&A, &Z);
+
+//   s21_remove_matrix(&A);
+//   s21_remove_matrix(&Z);
+//   return 0;
+// }
 
 int s21_create_matrix(int rows, int columns, matrix_t *result) {
   int return_value = 0;
@@ -236,32 +217,34 @@ int s21_transpose(matrix_t *A, matrix_t *result) {
 int s21_determinant(matrix_t *A, double *result) {
   int return_value =
       !A || !result || !A->matrix || A->rows <= 0 || A->columns <= 0;
+  int one_flag = 0;
 
   if (return_value == 0) {
     if (A->rows != A->columns) {
       return_value = 2;
     }
     if (return_value == 0) {
-      if (A->rows == 1) {
+      if (A->rows == 1 && A->columns) {
         *result = A->matrix[0][0];
-        return 0;
+        one_flag = 1;
       }
+      if (!one_flag) {
+        double det = 0;
+        int sign = 1;
+        matrix_t minor;
 
-      double det = 0;
-      int sign = 1;
-      matrix_t minor;
+        for (int j = 0; j < A->columns; j++) {
+          s21_create_matrix(A->rows - 1, A->columns - 1, &minor);
+          s21_get_minor(A, 0, j, &minor);
+          double minor_det = 0;
+          s21_determinant(&minor, &minor_det);
+          det += sign * A->matrix[0][j] * minor_det;
+          sign *= -1;
+          s21_remove_matrix(&minor);
+        }
 
-      for (int j = 0; j < A->columns; j++) {
-        s21_create_matrix(A->rows - 1, A->columns - 1, &minor);
-        s21_get_minor(A, 0, j, &minor);
-        double minor_det = 0;
-        s21_determinant(&minor, &minor_det);
-        det += sign * A->matrix[0][j] * minor_det;
-        sign = -sign;
-        s21_remove_matrix(&minor);
+        *result = det;
       }
-
-      *result = det;
     }
   }
   return return_value;
@@ -288,63 +271,70 @@ int s21_get_minor(matrix_t *A, int row, int col, matrix_t *result) {
 }
 
 int s21_calc_complements(matrix_t *A, matrix_t *result) {
-  if (!A || !result || !A->matrix) {
-    return 1; // Ошибка, некорректная матрица
-  }
-  if (A->rows != A->columns || A->rows <= 0 || A->columns <= 0) {
-    return 2;
-  }
-
-  s21_create_matrix(A->rows, A->columns, result);
-  matrix_t minor;
-
-  int sign = 1;
-  for (int i = 0; i < A->rows; i++) {
-    for (int j = 0; j < A->columns; j++) {
-      s21_create_matrix(A->rows - 1, A->columns - 1, &minor);
-      s21_get_minor(A, i, j, &minor);
-      double det = 0.f;
-      s21_determinant(&minor, &det);
-      result->matrix[i][j] = sign * det;
-      sign = (int) pow(-1, i+j+2);
-      s21_remove_matrix(&minor);
+  int return_value = !A || !result || !A->matrix;
+  int one_flag = 0;
+  if (return_value == 0) {
+    if (A->rows != A->columns || A->rows <= 0 || A->columns <= 0) {
+      return_value = 2;
+    }
+    if (return_value == 0) {
+      s21_create_matrix(A->rows, A->columns, result);
+      if (A->rows == 1 && A->columns == 1) {
+        double det = 0.f;
+        s21_determinant(A, &det);
+        result->matrix[0][0] = (1 / det) * A->matrix[0][0];
+        one_flag = 1;
+      }
+      if (one_flag == 0) {
+        matrix_t minor;
+        int sign;
+        for (int i = 0; i < A->rows; i++) {
+          for (int j = 0; j < A->columns; j++) {
+            s21_create_matrix(A->rows - 1, A->columns - 1, &minor);
+            s21_get_minor(A, i, j, &minor);
+            double det = 0.f;
+            s21_determinant(&minor, &det);
+            result->matrix[i][j] = pow(-1, i + j) * det;
+            s21_remove_matrix(&minor);
+          }
+        }
+      }
     }
   }
-  return 0; // OK
+  return return_value;
 }
 
-// int s21_inverse_matrix(matrix_t *A, matrix_t *result) {
-//   if (A->rows != A->columns) {
-//     return 1;
-//   }
-//   double det;
-//   int det_code = s21_determinant(A, &det);
-//   if (det_code != 0) {
-//     return 2;
-//   }
-//   if (det == 0) {
-//     return 3;
-//   }
-//   matrix_t com;
-//   int com_code = s21_calc_complements(A, &com);
-//   if (com_code != 0) {
-//     return com_code;
-//   }
-//   matrix_t com_t;
-//   int com_t_code = s21_transpose(&com, &com_t);
-//   if (com_t_code != 0) {
-//     return com_t_code;
-//   }
-//   double inv_det = 1 / det;
-//   for (int i = 0; i < A->rows; i++) {
-//     for (int j = 0; j < A->columns; j++) {
-//       A->matrix[i][j] *= inv_det;
-//     }
-//   }
+int s21_inverse_matrix(matrix_t *A, matrix_t *result) {
+  int return_value = !A || !result || !A->matrix;
+  if (return_value == 0) {
+    if (A->rows != A->columns || A->rows <= 0 || A->columns <= 0) {
+      return_value = 2;
+    } else {
+      double det;
+      int det_code = 0;
+      if ((det_code = s21_determinant(A, &det)) != 0 || det == 0) {
+        return_value = 2;
+      } else {
+        matrix_t com;
+        int com_code = 0;
+        if ((com_code = s21_calc_complements(A, &com)) != 0) {
+          return_value = com_code;
+        } else {
+          matrix_t com_t;
+          int com_t_code = 0;
+          if ((com_t_code = s21_transpose(&com, &com_t)) != 0) {
+            s21_remove_matrix(&com);
+            return_value = com_t_code;
+          } else {
+            s21_remove_matrix(&com);
+            double inv_det = 1 / det;
+            s21_mult_number(&com_t, inv_det, result);
 
-//   int mult_code = s21_mult_matrix(A, &com_t, result);
-//   if (mult_code != 0) {
-//     return mult_code;
-//   }
-//   return 0;
-// }
+            s21_remove_matrix(&com_t);
+          }
+        }
+      }
+    }
+  }
+  return return_value;
+}
