@@ -1,20 +1,5 @@
 #include "s21_matrix.h"
 
-// int main() {
-//   int res;
-//   matrix_t A = {0};
-//   matrix_t Z = {0};
-
-//   s21_create_matrix(1, 1, &A);
-//   A.matrix[0][0] = 2;
-
-//   res = s21_inverse_matrix(&A, &Z);
-
-//   s21_remove_matrix(&A);
-//   s21_remove_matrix(&Z);
-//   return 0;
-// }
-
 int s21_create_matrix(int rows, int columns, matrix_t *result) {
   int return_value = 0;
   if (result && rows > 0 && columns > 0) {
@@ -48,7 +33,6 @@ int s21_create_matrix(int rows, int columns, matrix_t *result) {
   } else {
     return_value = 1;
   }
-
   return return_value;
 }
 
@@ -72,10 +56,9 @@ int s21_eq_matrix(matrix_t *A, matrix_t *B) {
       !A || !B || A->rows != B->rows || A->columns != B->columns) {
     return_value = 0;
   }
-
   if (return_value == 1) {
     for (int i = 0; i < A->rows; i++) {
-      for (int j = 0; j < A->columns; j++) { // fix: use j instead of i
+      for (int j = 0; j < A->columns; j++) {
         if (fabs(A->matrix[i][j] - B->matrix[i][j]) > DIFF_LIMIT) {
           return_value = 0;
           break;
@@ -86,7 +69,6 @@ int s21_eq_matrix(matrix_t *A, matrix_t *B) {
       }
     }
   }
-
   return return_value;
 }
 
@@ -95,17 +77,14 @@ int s21_eq_matrix(matrix_t *A, matrix_t *B) {
 int s21_sum_matrix(matrix_t *A, matrix_t *B, matrix_t *result) {
   int return_value = A->rows <= 0 || A->columns <= 0 || B->rows <= 0 ||
                      B->columns <= 0 || !A || !B || !result;
-
   if (A->rows != B->rows || A->columns != B->columns) {
     return_value = 2;
   }
-
   if (return_value == 0) {
     if (s21_create_matrix(A->rows, A->columns, result) != 0) {
       return_value = 2;
     }
   }
-
   if (return_value == 0) {
     for (int i = 0; i < A->rows; i++) {
       for (int j = 0; j < A->columns; j++) {
@@ -113,7 +92,6 @@ int s21_sum_matrix(matrix_t *A, matrix_t *B, matrix_t *result) {
       }
     }
   }
-
   return return_value;
 }
 
@@ -232,7 +210,6 @@ int s21_determinant(matrix_t *A, double *result) {
         double det = 0;
         int sign = 1;
         matrix_t minor;
-
         for (int j = 0; j < A->columns; j++) {
           s21_create_matrix(A->rows - 1, A->columns - 1, &minor);
           s21_get_minor(A, 0, j, &minor);
@@ -242,7 +219,6 @@ int s21_determinant(matrix_t *A, double *result) {
           sign *= -1;
           s21_remove_matrix(&minor);
         }
-
         *result = det;
       }
     }
